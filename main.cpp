@@ -29,8 +29,13 @@ public:
   int argcount;
   int offset;
   bool isExternal;
+  bool isVarArgs;
   const char* name;
+  void* ptr;
 };
+
+
+void platform_call_wrapper(void* ptr, StackFrame** arguments, size_t argcount, bool varargs);
 
 class VM {
 public:
@@ -39,9 +44,6 @@ public:
   size_t* heap;
   std::vector<StackFrame*> stack;
   FunctionInformation* imports;
-  void platform_call_wrapper(const char* name, StackFrame** arguments, size_t argcount) {
-    
-  }
   
   
   VM(unsigned char* firmware) {
@@ -57,7 +59,10 @@ public:
     for(size_t i = 0;i<imports_size;i++) {
       read(imports[i].argcount);
       read(imports[i].isExternal);
-      read(imports[i].offset);
+      read(imports[i].isVarArgs);
+      if(!imports[i].isExternal) {
+	read(imports[i].offset);
+      }
       imports[i].name = (char*)cip;
       while(*cip){cip++;};
     }
@@ -154,7 +159,7 @@ public:
       }
       const char* funcname;
       pop(funcname);
-      platform_call_wrapper(funcname,args,argcount);
+      //platform_call_wrapper(funcname,args,argcount,false);
       for(size_t i = 0;i<argcount;i++) {
 	delete args[i];
       }
@@ -176,9 +181,9 @@ enum X86Register {
   RAX,
   RCX,
   RDX,
-  RBX,
-  RSP,
-  RBP,
+  RBX, //preserved
+  RSP, //preserved
+  RBP, //preserved
   RSI,
   RDI
 };
@@ -198,10 +203,32 @@ public:
     *ptr = byte;
     ptr++;
   }
-  void rrmov64(X86Register src, X86Register dest) {
+  template<typename T>
+  void writelong(const T& value) {
+    memcpy(ptr,&value,sizeof(T));
+    ptr+=sizeof(T);
+  }
+  void rpush64(X86Register reg) {
+    write(0x48);
+    write(0x50+reg);
+  }
+  void rpop64(X86Register reg) {
+    write(0x48);
+    write(0x58+reg);
+  }
+  void irmov64(int64_t value, X86Register dest) {
+    write(0x48);
+    write(0xB8+dest);
+    writelong(value);
+  }
+  void rrmov64(X86Register dest, X86Register src) {
     write(0x48); //64-bit instruction
     write(0x89); //mov
     write(encode_modrm(src,dest,0b11));
+  }
+  void mcall(X86Register address) {
+    write(0xff);
+    write(encode_modrm(address,2,0b11));
   }
   void ret() {
     write(0xc3);
@@ -211,6 +238,40 @@ public:
     close(dzero);
   }
 };
+
+thread_local ASMEmit emitter;
+
+void printsomething(const char* txt) {
+ printf("%s\n",txt); 
+}
+
+void x86_call_wrapper(void* ptr, int64_t* arguments, size_t argcount, bool varargs) {
+  X86Register regmap[] = {
+    RDI, RSI, RDX, RCX
+  };
+  
+  
+  emitter.ptr = emitter.code;
+  int regno = 0;
+  if(varargs) {
+    emitter.irmov64(0,RAX); //varargs needs a 0 stored in RAX register to indicate no special registers are in use.
+  }
+  emitter.rpush64(RBX);
+  emitter.irmov64((int64_t)ptr,RBX);
+  for(size_t i = 0;i<argcount;i++) {
+    emitter.irmov64(arguments[i],regmap[(regno+argcount)-i-1]);
+  }
+  regno+=argcount;
+  emitter.mcall(RBX);
+  emitter.rpop64(RBX);
+  emitter.ret();
+  unsigned char* code = emitter.code;
+  ((void(*)())code)();
+}
+
+void platform_call_wrapper(void* ptr, StackFrame** arguments, size_t argcount, bool varargs) {
+  
+}
 
 static void uvm_exec(unsigned char* bytecode) {
   VM vm(bytecode);
@@ -222,9 +283,11 @@ int main(int argc, char** argv) {
   ASMEmit ter;
 int64_t m = 5;
 void* funcptr = dlsym(0,"printf");
-ter.rrmov64(RDI,RAX);
-ter.ret();
-((void(*)(int64_t))ter.code)(m);
+const char* txt = "Hello world!\n";
+
+//((void(*)(const char*,...))funcptr)(txt);
+int64_t args[] = {(int64_t)txt};
+x86_call_wrapper(funcptr,args,1,true);
 
   
   int fd = open(argv[1],O_RDONLY);
@@ -232,6 +295,6 @@ ter.ret();
   fstat(fd,&us);
   
   unsigned char* mander =(unsigned char*)mmap(0,us.st_size,PROT_READ,MAP_SHARED,fd,0);
-  uvm_exec(mander);
+  //uvm_exec(mander);
   return 0;
 }
