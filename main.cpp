@@ -8,6 +8,7 @@
 #include <string>
 #include <map>
 #include <dlfcn.h>
+#include "emit.h"
 
 //UVM Interpreter and Test Suite
 
@@ -43,6 +44,7 @@ public:
   unsigned char* cip;
   size_t* heap;
   std::vector<StackFrame*> stack;
+  std::vector<unsigned char*> retstack;
   FunctionInformation* imports;
   
   
@@ -63,8 +65,13 @@ public:
       if(!imports[i].isExternal) {
 	read(imports[i].offset);
       }
-      imports[i].name = (char*)cip;
-      while(*cip){cip++;};
+      imports[i].name = readString();
+      if(imports[i].isExternal) {
+	imports[i].ptr = dlsym(0,imports[i].name);
+	if(!imports[i].ptr) {
+	  printf("UNABLE TO RESOLVE SYMBOL %s\n",imports[i].name);
+	}
+      }
     }
   }
   template<typename T>
@@ -75,6 +82,7 @@ public:
   void push(void* data, size_t size) {
     StackFrame* frame = new StackFrame(size);
     memcpy(frame->ptr,data,size);
+    stack.push_back(frame);
   }
   template<typename T>
   void pop(T& out) {
@@ -88,6 +96,12 @@ public:
     stack.pop_back();
     delete frame;
   }
+  const char* readString() {
+    const char* mander = (const char*)cip;
+    while(*cip){cip++;}
+    cip++;
+    return mander;
+  }
   void exec() {
     while(1) {
     unsigned char opcode;
@@ -100,6 +114,7 @@ public:
       int len;
       read(len);
       push(cip,len);
+      cip+=len;
     }
       break;
     case 1:
@@ -148,22 +163,38 @@ public:
       break;
     case 5:
     {
-      //External call
-      int _argcount;
-      pop(_argcount);
-      size_t argcount = _argcount;
-      StackFrame** args = new StackFrame*[argcount];
+      //Procedure call
+      int funcid;
+      read(funcid);
+      FunctionInformation* info = imports+funcid;
+      
+      size_t argcount = info->argcount;
+      if(info->isExternal) {
+      StackFrame** args = new StackFrame*[argcount+1];
       for(size_t i = 0;i<argcount;i++) {
 	args[i] = stack.back();
 	stack.pop_back();
       }
-      const char* funcname;
-      pop(funcname);
-      //platform_call_wrapper(funcname,args,argcount,false);
+      
+      platform_call_wrapper(info->ptr,args,argcount,info->isVarArgs);
       for(size_t i = 0;i<argcount;i++) {
 	delete args[i];
       }
       delete[] args;
+      }else {
+	retstack.push_back(cip);
+	cip = firmware+info->offset;
+      }
+    }
+      break;
+    case 6:
+    {
+      //Procedure call return/exit
+      if(!retstack.size()) {
+	return;
+      }
+      cip = retstack.back();
+      retstack.pop_back();
     }
       break;
   }
@@ -241,16 +272,11 @@ public:
 
 thread_local ASMEmit emitter;
 
-void printsomething(const char* txt) {
- printf("%s\n",txt); 
-}
 
 void x86_call_wrapper(void* ptr, int64_t* arguments, size_t argcount, bool varargs) {
   X86Register regmap[] = {
     RDI, RSI, RDX, RCX
   };
-  
-  
   emitter.ptr = emitter.code;
   int regno = 0;
   if(varargs) {
@@ -269,8 +295,14 @@ void x86_call_wrapper(void* ptr, int64_t* arguments, size_t argcount, bool varar
   ((void(*)())code)();
 }
 
+
 void platform_call_wrapper(void* ptr, StackFrame** arguments, size_t argcount, bool varargs) {
-  
+  int64_t* args = new int64_t[argcount];
+  for(size_t i = 0;i<argcount;i++) {
+    memcpy(args+i,arguments[i]->ptr,arguments[i]->size);
+  }
+  x86_call_wrapper(ptr,args,argcount,varargs);
+  delete[] args;
 }
 
 static void uvm_exec(unsigned char* bytecode) {
@@ -278,16 +310,51 @@ static void uvm_exec(unsigned char* bytecode) {
   vm.exec();
 }
 
+extern "C" {
+void nativefunc() {
+  printf("This is a native function called from UVM!\n");
+}
+}
+
+static void uvm_testprog() {
+  Import ant[2];
+  ant[0].name = "printf";
+  ant[1].name = "nativefunc";
+  ant[0].argcount = 2;
+  ant[0].isVarArgs = true;
+  ant[1].isVarArgs = false;
+  ant[1].argcount = 0;
+  ant[0].isExternal = 1;
+  ant[1].isExternal = 1;
+  Assembly code(ant,2);
+  code.call(1);
+  const char* txt = "Hello world! The number is %i\n";
+  int eger = 5;
+  code.push(&txt,sizeof(txt));
+  code.push(&eger,sizeof(eger));
+  code.call(0);
+  code.ret();
+  uvm_exec(code.bytecode);
+}
+
 //5
 int main(int argc, char** argv) {
-  ASMEmit ter;
-int64_t m = 5;
-void* funcptr = dlsym(0,"printf");
-const char* txt = "Hello world!\n";
 
-//((void(*)(const char*,...))funcptr)(txt);
-int64_t args[] = {(int64_t)txt};
-x86_call_wrapper(funcptr,args,1,true);
+  uvm_testprog();
+  //void* funcptr = dlsym(0,"printf");
+//const char* txt = "Hello world!\n";
+
+//int64_t args[] = {(int64_t)txt};
+//x86_call_wrapper(funcptr,args,1,true);
+
+
+
+
+
+
+
+
+
 
   
   int fd = open(argv[1],O_RDONLY);
