@@ -328,8 +328,8 @@ static void uvm_testprog() {
   ant[1].isExternal = 1;
   Assembly code(ant,2);
   code.call(1);
-  const char* txt = "Hello world! The number is %i\n";
-  int eger = 5;
+  const char* txt = "Hello world! The answer to life, the universe, and everything is %i\n";
+  int eger = 42;
   code.push(&txt,sizeof(txt));
   code.push(&eger,sizeof(eger));
   code.call(0);
