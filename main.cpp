@@ -42,6 +42,7 @@ class VM {
 public:
   unsigned char* firmware;
   unsigned char* cip;
+  unsigned char* rsp;
   size_t* heap;
   std::vector<StackFrame*> stack;
   std::vector<unsigned char*> retstack;
@@ -73,6 +74,7 @@ public:
 	}
       }
     }
+    rsp = heap;
   }
   template<typename T>
   void read(T& out) {
@@ -195,6 +197,18 @@ public:
       }
       cip = retstack.back();
       retstack.pop_back();
+    }
+      break;
+    case 7:
+    {
+      //Set stack pointer
+      pop(rsp);
+    }
+      break;
+    case 8:
+    {
+      //Read stack pointer
+      push(&rsp,sizeof(rsp));
     }
       break;
   }
