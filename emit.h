@@ -11,6 +11,7 @@ public:
   bool isExternal;
   bool isVarArgs;
   const char* name;
+  size_t namelen = 0;
   int offset;
 };
 
@@ -32,9 +33,18 @@ public:
       if(!imports[i].isExternal) {
 	write(imports[i].offset);
       }
-      writeString(imports[i].name);
+      if(imports[i].namelen) {
+	write(imports[i].name,imports[i].namelen);
+	unsigned char terminator = 0;
+	write(terminator);
+      }else {
+	writeString(imports[i].name);
+      }
       
     }
+  }
+  Assembly():Assembly(0,0) {
+    
   }
   void push(const void* data, int len) {
     unsigned char opcode = 0;
@@ -66,6 +76,14 @@ public:
   }
   void ret() {
     unsigned char opcode = 6;
+    write(opcode);
+  }
+  void setrsp() {
+    unsigned char opcode = 7;
+    write(opcode);
+  }
+  void getrsp() {
+    unsigned char opcode = 8;
     write(opcode);
   }
   

@@ -74,7 +74,7 @@ public:
 	}
       }
     }
-    rsp = heap;
+    rsp = (unsigned char*)heap;
   }
   template<typename T>
   void read(T& out) {
