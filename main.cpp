@@ -355,18 +355,6 @@ static void uvm_testprog() {
 int main(int argc, char** argv) {
 
   uvm_testprog();
-  //void* funcptr = dlsym(0,"printf");
-//const char* txt = "Hello world!\n";
-
-//int64_t args[] = {(int64_t)txt};
-//x86_call_wrapper(funcptr,args,1,true);
-
-
-
-
-
-
-
 
 
 
