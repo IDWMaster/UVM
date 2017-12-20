@@ -325,8 +325,8 @@ static void uvm_exec(unsigned char* bytecode) {
 }
 
 extern "C" {
-void nativefunc() {
-  printf("This is a native function called from UVM!\n");
+void nativefunc(const char* somearg) {
+  printf("This is a native function called from UVM! The string is %s\n",somearg);
 }
 }
 
@@ -337,10 +337,12 @@ static void uvm_testprog() {
   ant[0].argcount = 2;
   ant[0].isVarArgs = true;
   ant[1].isVarArgs = false;
-  ant[1].argcount = 0;
+  ant[1].argcount = 1;
   ant[0].isExternal = 1;
   ant[1].isExternal = 1;
   Assembly code(ant,2);
+  const char* othertext = "Cool demo";
+  code.push(&othertext,sizeof(othertext));
   code.call(1);
   const char* txt = "Hello world! The answer to life, the universe, and everything is %i\n";
   int eger = 42;
@@ -354,7 +356,7 @@ static void uvm_testprog() {
 //5
 int main(int argc, char** argv) {
 
-  uvm_testprog();
+  //uvm_testprog();
 
 
 
@@ -364,6 +366,6 @@ int main(int argc, char** argv) {
   fstat(fd,&us);
   
   unsigned char* mander =(unsigned char*)mmap(0,us.st_size,PROT_READ,MAP_SHARED,fd,0);
-  //uvm_exec(mander);
+  uvm_exec(mander);
   return 0;
 }
