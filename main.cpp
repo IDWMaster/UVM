@@ -328,6 +328,9 @@ extern "C" {
 void nativefunc(const char* somearg) {
   printf("This is a native function called from UVM! The string is %s\n",somearg);
 }
+size_t __uvm_intrinsic_ptradd(size_t a, size_t b) {
+  return a+b;
+}
 }
 
 static void uvm_testprog() {
