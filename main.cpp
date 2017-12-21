@@ -31,12 +31,14 @@ public:
   int offset;
   bool isExternal;
   bool isVarArgs;
+  int outsize;
   const char* name;
   void* ptr;
 };
 
 
-void platform_call_wrapper(void* ptr, StackFrame** arguments, size_t argcount, bool varargs);
+class VM;
+void platform_call_wrapper(void* ptr, StackFrame** arguments, size_t argcount, size_t outsize,bool varargs, VM* vm);
 
 class VM {
 public:
@@ -63,6 +65,10 @@ public:
       read(imports[i].argcount);
       read(imports[i].isExternal);
       read(imports[i].isVarArgs);
+      read(imports[i].outsize);
+      if(imports[i].outsize == -1) {
+	imports[i].outsize = sizeof(void*);
+      }
       if(!imports[i].isExternal) {
 	read(imports[i].offset);
       }
@@ -178,7 +184,7 @@ public:
 	stack.pop_back();
       }
       
-      platform_call_wrapper(info->ptr,args,argcount,info->isVarArgs);
+      platform_call_wrapper(info->ptr,args,argcount,info->outsize,info->isVarArgs,this);
       for(size_t i = 0;i<argcount;i++) {
 	delete args[i];
       }
@@ -287,7 +293,7 @@ public:
 thread_local ASMEmit emitter;
 
 
-void x86_call_wrapper(void* ptr, int64_t* arguments, size_t argcount, bool varargs) {
+size_t x86_call_wrapper(void* ptr, int64_t* arguments, size_t argcount,size_t outsize, bool varargs) {
   X86Register regmap[] = {
     RDI, RSI, RDX, RCX
   };
@@ -306,16 +312,19 @@ void x86_call_wrapper(void* ptr, int64_t* arguments, size_t argcount, bool varar
   emitter.rpop64(RBX);
   emitter.ret();
   unsigned char* code = emitter.code;
-  ((void(*)())code)();
+  return ((size_t(*)())code)();
 }
 
 
-void platform_call_wrapper(void* ptr, StackFrame** arguments, size_t argcount, bool varargs) {
+void platform_call_wrapper(void* ptr, StackFrame** arguments, size_t argcount, size_t outsize, bool varargs, VM* vm) {
   int64_t* args = new int64_t[argcount];
   for(size_t i = 0;i<argcount;i++) {
     memcpy(args+i,arguments[i]->ptr,arguments[i]->size);
   }
-  x86_call_wrapper(ptr,args,argcount,varargs);
+  size_t retval = x86_call_wrapper(ptr,args,argcount,outsize,varargs);
+  if(outsize) {
+    vm->push(&retval,outsize);
+  }
   delete[] args;
 }
 

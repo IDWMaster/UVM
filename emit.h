@@ -8,6 +8,7 @@
 class Import {
 public:
   int argcount;
+  int outsize; //Output size (or -1 for sizeof(void*))
   bool isExternal;
   bool isVarArgs;
   const char* name;
@@ -31,6 +32,7 @@ public:
       write(imports[i].argcount);
       write(imports[i].isExternal);
       write(imports[i].isVarArgs);
+      write(imports[i].outsize);
       if(!imports[i].isExternal) {
 	write(imports[i].offset);
       }
