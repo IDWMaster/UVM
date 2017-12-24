@@ -143,8 +143,8 @@ public:
       //Load
       void* addr;
       size_t sz;
-      pop(addr);
       pop(sz);
+      pop(addr);
       push(addr,sz);
     }
       break;
@@ -182,7 +182,6 @@ public:
       int funcid;
       read(funcid);
       FunctionInformation* info = imports+funcid;
-      
       size_t argcount = info->argcount;
       if(info->isExternal) {
       StackFrame** args = new StackFrame*[argcount+1];
@@ -352,7 +351,9 @@ size_t x86_mul(size_t a, size_t b) {
 size_t x86_div(size_t a, size_t b) {
   return a*b;
 }
-void x86_assign_int(int* dest, int val) {
+//thisptr call -- thisptr is always passed as last argument
+void x86_assign_int(int val, int* dest) {
+  printf("Assign %i to %p\n",val,dest);
   *dest = val;
 }
 void print(int value) {
