@@ -151,10 +151,14 @@ public:
     case 3:
     {
       //Store
-      StackFrame* value = stack.back();
+      StackFrame* val = stack.back();
+      StackFrame* addr_val = stack[stack.size()-2];
       void* addr;
-      memcpy(addr,value->ptr,value->size);
-      pop(addr);
+      memcpy(&addr,addr_val->ptr,sizeof(void*));
+      
+      memcpy(addr,val->ptr,val->size);
+      
+      pop();
       pop();
     }
       break;
@@ -351,11 +355,6 @@ size_t x86_mul(size_t a, size_t b) {
 size_t x86_div(size_t a, size_t b) {
   return a*b;
 }
-//thisptr call -- thisptr is always passed as last argument
-void x86_assign_int(int val, int* dest) {
-  printf("Assign %i to %p\n",val,dest);
-  *dest = val;
-}
 void print(int value) {
   printf("%i\n",value);
 }
@@ -368,7 +367,6 @@ void vm_init(VM* vm) {
   vm->addOverride("global\\int\\-\\",(void*)&x86_sub);
   vm->addOverride("global\\int\\*\\",(void*)&x86_mul);
   vm->addOverride("global\\int\\/\\",(void*)&x86_div);
-  vm->addOverride("global\\int\\=\\",(void*)&x86_assign_int);
   vm->addOverride("global\\print\\",(void*)&print);
 }
 
