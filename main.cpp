@@ -39,7 +39,7 @@ public:
 
 class VM;
 void platform_call_wrapper(void* ptr, StackFrame** arguments, size_t argcount, size_t outsize,bool varargs, VM* vm);
-
+void vm_init(VM* vm);
 class VM {
 public:
   unsigned char* firmware;
@@ -49,9 +49,12 @@ public:
   std::vector<StackFrame*> stack;
   std::vector<unsigned char*> retstack;
   FunctionInformation* imports;
-  
-  
+  std::map<std::string,void*> overrides;
+  void addOverride(const std::string& name, void* ptr) {
+    overrides[name] = ptr;
+  }
   VM(unsigned char* firmware) {
+    vm_init(this);
     this->firmware = firmware;
     cip = firmware;
     size_t targetHeapSize = 1024*1024*5;
@@ -74,7 +77,11 @@ public:
       }
       imports[i].name = readString();
       if(imports[i].isExternal) {
+	if(overrides.find(imports[i].name) != overrides.end()) {
+	  imports[i].ptr = overrides[imports[i].name];
+	}else {
 	imports[i].ptr = dlsym(0,imports[i].name);
+	}
 	if(!imports[i].ptr) {
 	  printf("UNABLE TO RESOLVE SYMBOL %s\n",imports[i].name);
 	}
@@ -328,10 +335,6 @@ void platform_call_wrapper(void* ptr, StackFrame** arguments, size_t argcount, s
   delete[] args;
 }
 
-static void uvm_exec(unsigned char* bytecode) {
-  VM vm(bytecode);
-  vm.exec();
-}
 
 extern "C" {
 void nativefunc(const char* somearg) {
@@ -340,6 +343,38 @@ void nativefunc(const char* somearg) {
 size_t __uvm_intrinsic_ptradd(size_t a, size_t b) {
   return a+b;
 }
+size_t x86_sub(size_t a, size_t b) {
+  return a-b;
+}
+size_t x86_mul(size_t a, size_t b) {
+  return a*b;
+}
+size_t x86_div(size_t a, size_t b) {
+  return a*b;
+}
+void x86_assign_int(int* dest, int val) {
+  *dest = val;
+}
+void print(int value) {
+  printf("%i\n",value);
+}
+
+}
+
+
+void vm_init(VM* vm) {
+  vm->addOverride("global\\int\\+\\",(void*)&__uvm_intrinsic_ptradd);
+  vm->addOverride("global\\int\\-\\",(void*)&x86_sub);
+  vm->addOverride("global\\int\\*\\",(void*)&x86_mul);
+  vm->addOverride("global\\int\\/\\",(void*)&x86_div);
+  vm->addOverride("global\\int\\=\\",(void*)&x86_assign_int);
+  vm->addOverride("global\\print\\",(void*)&print);
+}
+
+
+static void uvm_exec(unsigned char* bytecode) {
+  VM vm(bytecode);
+  vm.exec();
 }
 
 static void uvm_testprog() {
