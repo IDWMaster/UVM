@@ -76,6 +76,8 @@ public:
 	read(imports[i].offset);
       }
       imports[i].name = readString();
+      //printf("Function %s: args %i, external %s, varargs %s, outsize %i\n",imports[i].name,(int)imports[i].argcount,imports[i].isExternal ? "true" : "false",imports[i].isVarArgs ? "true" : "false",(int)imports[i].outsize);
+      
       if(imports[i].isExternal) {
 	if(overrides.find(imports[i].name) != overrides.end()) {
 	  imports[i].ptr = overrides[imports[i].name];
@@ -155,9 +157,7 @@ public:
       StackFrame* addr_val = stack[stack.size()-2];
       void* addr;
       memcpy(&addr,addr_val->ptr,sizeof(void*));
-      
       memcpy(addr,val->ptr,val->size);
-      
       pop();
       pop();
     }
@@ -346,14 +346,17 @@ void nativefunc(const char* somearg) {
 size_t __uvm_intrinsic_ptradd(size_t a, size_t b) {
   return a+b;
 }
-size_t x86_sub(size_t a, size_t b) {
-  return a-b;
+size_t x86_sub(size_t b, size_t* a) {
+  return *a-b;
 }
-size_t x86_mul(size_t a, size_t b) {
-  return a*b;
+size_t x86_add(size_t b, size_t* a) {
+  return *a+b;
 }
-size_t x86_div(size_t a, size_t b) {
-  return a*b;
+size_t x86_mul(size_t b, size_t* a) {
+  return *a*b;
+}
+size_t x86_div(size_t b, size_t* a) {
+  return *a*b;
 }
 void print(int value) {
   printf("%i\n",value);
@@ -363,11 +366,12 @@ void print(int value) {
 
 
 void vm_init(VM* vm) {
-  vm->addOverride("global\\int\\+\\",(void*)&__uvm_intrinsic_ptradd);
+  vm->addOverride("global\\int\\+\\",(void*)&x86_add);
   vm->addOverride("global\\int\\-\\",(void*)&x86_sub);
   vm->addOverride("global\\int\\*\\",(void*)&x86_mul);
   vm->addOverride("global\\int\\/\\",(void*)&x86_div);
   vm->addOverride("global\\print\\",(void*)&print);
+  
 }
 
 
@@ -381,9 +385,11 @@ static void uvm_testprog() {
   ant[0].name = "printf";
   ant[1].name = "nativefunc";
   ant[0].argcount = 2;
+  ant[0].outsize = 0;
   ant[0].isVarArgs = true;
   ant[1].isVarArgs = false;
   ant[1].argcount = 1;
+  ant[1].outsize = 0;
   ant[0].isExternal = 1;
   ant[1].isExternal = 1;
   Assembly code(ant,2);
@@ -401,8 +407,6 @@ static void uvm_testprog() {
 
 //5
 int main(int argc, char** argv) {
-
-  //uvm_testprog();
 
 
 
