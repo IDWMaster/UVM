@@ -89,6 +89,10 @@ public:
     unsigned char opcode = 8;
     write(opcode);
   }
+  void vref() {
+    unsigned char opcode = 9;
+    write(opcode);
+  }
   
   
   void writeString(const char* value) {

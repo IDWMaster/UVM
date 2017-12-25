@@ -16,9 +16,11 @@ class StackFrame {
 public:
   unsigned char* ptr;
   size_t size;
+  StackFrame* vref;
   StackFrame(size_t sz) {
     size= sz;
     ptr = new unsigned char[sz];
+    vref = 0;
   }
   ~StackFrame() {
     delete[] ptr;
@@ -101,16 +103,23 @@ public:
     memcpy(frame->ptr,data,size);
     stack.push_back(frame);
   }
+  void rmstack() {
+    bool vref = stack.back()->vref;
+    stack.pop_back();
+    if(vref) {
+      rmstack();
+    }
+  }
   template<typename T>
   void pop(T& out) {
     StackFrame* frame = stack.back();
-    stack.pop_back();
+    rmstack();
     memcpy(&out,frame->ptr,sizeof(T));
     delete frame;
   }
   void pop() {
     StackFrame* frame = stack.back();
-    stack.pop_back();
+    rmstack();
     delete frame;
   }
   const char* readString() {
@@ -191,7 +200,7 @@ public:
       StackFrame** args = new StackFrame*[argcount+1];
       for(size_t i = 0;i<argcount;i++) {
 	args[i] = stack.back();
-	stack.pop_back();
+	rmstack();
       }
       
       platform_call_wrapper(info->ptr,args,argcount,info->outsize,info->isVarArgs,this);
@@ -212,7 +221,7 @@ public:
 	return;
       }
       cip = retstack.back();
-      retstack.pop_back();
+      rmstack();
     }
       break;
     case 7:
@@ -225,6 +234,14 @@ public:
     {
       //Read stack pointer
       push(&rsp,sizeof(rsp));
+    }
+      break;
+    case 9:
+    {
+      //This pointer (reference)
+      void* addr = stack.back()->ptr;
+      push(&addr,sizeof(addr));
+      stack.back()->vref = stack[stack.size()-2];
     }
       break;
   }
