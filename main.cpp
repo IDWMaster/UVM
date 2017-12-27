@@ -378,16 +378,20 @@ size_t x86_div(size_t b, size_t* a) {
 void print(int value) {
   printf("%i\n",value);
 }
+void print_bool(bool value) {
+  printf("%s\n",value ? "true" : "false");
+}
 
 }
 
 
 void vm_init(VM* vm) {
-  vm->addOverride("global\\int\\+\\",(void*)&x86_add);
-  vm->addOverride("global\\int\\-\\",(void*)&x86_sub);
-  vm->addOverride("global\\int\\*\\",(void*)&x86_mul);
-  vm->addOverride("global\\int\\/\\",(void*)&x86_div);
-  vm->addOverride("global\\print\\",(void*)&print);
+  vm->addOverride("global\\int\\+\\(global\\int\\\\)global\\int\\",(void*)&x86_add);
+  vm->addOverride("global\\int\\-\\(global\\int\\\\)global\\int\\",(void*)&x86_sub);
+  vm->addOverride("global\\int\\*\\(global\\int\\\\)global\\int\\",(void*)&x86_mul);
+  vm->addOverride("global\\int\\/\\(global\\int\\\\)global\\int\\",(void*)&x86_div);
+  vm->addOverride("global\\print\\(global\\int\\\\)",(void*)&print);
+  vm->addOverride("global\\print\\(global\\bool\\\\)",(void*)&print_bool);
   
 }
 
