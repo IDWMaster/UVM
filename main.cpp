@@ -173,19 +173,21 @@ public:
       break;
     case 4:
     {
-      //CIP-relative branch
+      //Absolute branch
       int offset;
       pop(offset);
       bool shouldBranch = false;
+      
       StackFrame* frame = stack.back();
       for(size_t i = 0;i<frame->size;i++) {
 	if(frame->ptr[i]) {
 	  shouldBranch = true;
 	}
       }
+      
       pop();
       if(shouldBranch) {
-	cip =oldip+offset;
+	cip =firmware+offset;
       }
     }
       break;
@@ -375,6 +377,14 @@ size_t x86_mul(size_t b, size_t* a) {
 size_t x86_div(size_t b, size_t* a) {
   return *a*b;
 }
+bool x86_lt(size_t b, size_t* a) {
+  return *a<b;
+}
+bool x86_gt(size_t b, size_t* a) {
+  return *a>b;
+}
+
+
 void print(int value) {
   printf("%i\n",value);
 }
@@ -390,6 +400,8 @@ void vm_init(VM* vm) {
   vm->addOverride("global\\int\\-\\(global\\int\\\\)global\\int\\",(void*)&x86_sub);
   vm->addOverride("global\\int\\*\\(global\\int\\\\)global\\int\\",(void*)&x86_mul);
   vm->addOverride("global\\int\\/\\(global\\int\\\\)global\\int\\",(void*)&x86_div);
+  vm->addOverride("global\\int\\<\\(global\\int\\\\)global\\bool\\",(void*)&x86_lt);
+  vm->addOverride("global\\int\\>\\(global\\int\\\\)global\\bool\\",(void*)&x86_gt);
   vm->addOverride("global\\print\\(global\\int\\\\)",(void*)&print);
   vm->addOverride("global\\print\\(global\\bool\\\\)",(void*)&print_bool);
   

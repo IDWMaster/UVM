@@ -67,10 +67,9 @@ public:
     unsigned char opcode = 3;
     write(opcode);
   }
-  void branch(int offset) {
+  void branch() {
     unsigned char opcode = 4;
     write(opcode);
-    write(offset);
   }
   void call(int funcid) {
     unsigned char opcode = 5;
