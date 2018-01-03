@@ -365,6 +365,9 @@ void nativefunc(const char* somearg) {
 size_t __uvm_intrinsic_ptradd(size_t a, size_t b) {
   return a+b;
 }
+bool __uvm_intrinsic_not(bool ean) {
+  return !ean;
+}
 size_t x86_sub(size_t b, size_t* a) {
   return *a-b;
 }
