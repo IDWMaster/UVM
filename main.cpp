@@ -246,6 +246,12 @@ public:
       stack.back()->vref = stack[stack.size()-2];
     }
       break;
+    default:
+    {
+      printf("Illegal instruction\n");
+      abort();
+    }
+      break;
   }
     }
   }
@@ -399,12 +405,12 @@ void print_bool(bool value) {
 
 
 void vm_init(VM* vm) {
-  vm->addOverride("global\\int\\+\\(global\\int\\\\)global\\int\\",(void*)&x86_add);
-  vm->addOverride("global\\int\\-\\(global\\int\\\\)global\\int\\",(void*)&x86_sub);
-  vm->addOverride("global\\int\\*\\(global\\int\\\\)global\\int\\",(void*)&x86_mul);
-  vm->addOverride("global\\int\\/\\(global\\int\\\\)global\\int\\",(void*)&x86_div);
-  vm->addOverride("global\\int\\<\\(global\\int\\\\)global\\bool\\",(void*)&x86_lt);
-  vm->addOverride("global\\int\\>\\(global\\int\\\\)global\\bool\\",(void*)&x86_gt);
+  vm->addOverride("global\\int\\+\\(global\\int\\\\global\\int\\*\\)global\\int\\",(void*)&x86_add);
+  vm->addOverride("global\\int\\-\\(global\\int\\\\global\\int\\*\\)global\\int\\",(void*)&x86_sub);
+  vm->addOverride("global\\int\\*\\(global\\int\\\\global\\int\\*\\)global\\int\\",(void*)&x86_mul);
+  vm->addOverride("global\\int\\/\\(global\\int\\\\global\\int\\*\\)global\\int\\",(void*)&x86_div);
+  vm->addOverride("global\\int\\<\\(global\\int\\\\global\\int\\*\\)global\\bool\\",(void*)&x86_lt);
+  vm->addOverride("global\\int\\>\\(global\\int\\\\global\\int\\*\\)global\\bool\\",(void*)&x86_gt);
   vm->addOverride("global\\print\\(global\\int\\\\)",(void*)&print);
   vm->addOverride("global\\print\\(global\\bool\\\\)",(void*)&print_bool);
   
