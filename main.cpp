@@ -47,6 +47,7 @@ public:
   unsigned char* firmware;
   unsigned char* cip;
   unsigned char* rsp;
+  unsigned char* programBase;
   size_t* heap;
   std::vector<StackFrame*> stack;
   std::vector<unsigned char*> retstack;
@@ -91,6 +92,7 @@ public:
 	}
       }
     }
+    programBase = cip;
     rsp = (unsigned char*)heap;
   }
   template<typename T>
@@ -133,6 +135,7 @@ public:
     unsigned char opcode;
     unsigned char* oldip = cip;
     read(opcode);
+    printf("EXEC %i\n",(int)opcode);
     switch(opcode) {
     case 0:
     {
@@ -212,7 +215,8 @@ public:
       delete[] args;
       }else {
 	retstack.push_back(cip);
-	cip = firmware+info->offset;
+	cip = programBase+info->offset;
+	printf("Call function at offset %i\n",info->offset);
       }
     }
       break;
