@@ -226,7 +226,7 @@ public:
 	return;
       }
       cip = retstack.back();
-      rmstack();
+      retstack.pop_back();
     }
       break;
     case 7:
