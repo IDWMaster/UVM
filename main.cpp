@@ -135,7 +135,6 @@ public:
     unsigned char opcode;
     unsigned char* oldip = cip;
     read(opcode);
-    printf("EXEC %i\n",(int)opcode);
     switch(opcode) {
     case 0:
     {
@@ -165,8 +164,8 @@ public:
     case 3:
     {
       //Store
-      StackFrame* val = stack.back();
-      StackFrame* addr_val = stack[stack.size()-2];
+      StackFrame* val = stack[stack.size()-2];
+      StackFrame* addr_val = stack[stack.size()-1];
       void* addr;
       memcpy(&addr,addr_val->ptr,sizeof(void*));
       memcpy(addr,val->ptr,val->size);
