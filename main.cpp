@@ -215,7 +215,6 @@ public:
       }else {
 	retstack.push_back(cip);
 	cip = programBase+info->offset;
-	printf("Call function at offset %i\n",info->offset);
       }
     }
       break;
