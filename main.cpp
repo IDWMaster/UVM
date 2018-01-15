@@ -88,7 +88,7 @@ public:
 	imports[i].ptr = dlsym(0,imports[i].name);
 	}
 	if(!imports[i].ptr) {
-	  printf("UNABLE TO RESOLVE SYMBOL %s\n",imports[i].name);
+	  printf("UNABLE TO RESOLVE EXTERNAL SYMBOL %s\n",imports[i].name);
 	}
       }
     }
