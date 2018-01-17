@@ -203,7 +203,7 @@ public:
       if(info->isExternal) {
       StackFrame** args = new StackFrame*[argcount+1];
       for(size_t i = 0;i<argcount;i++) {
-	args[i] = stack.back();
+	args[argcount-i-1] = stack.back();
 	rmstack();
       }
       
